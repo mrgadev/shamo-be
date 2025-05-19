@@ -86,4 +86,49 @@ class UserController extends Controller
             'Data profile user berhasil diambil'
         ]);
     }
+
+    public function updateProfile(Request $request) {
+        try {
+            $request->validate([
+                'name' => 'required|string',
+                'phone_number' => 'nullable|string',
+                'email' => 'required|string|email',
+                'username' => 'required|string',
+                'avatar' => 'nullable|image|max:2048' 
+            ]);
+            $user = Auth::user();
+            $user->update([
+                'name' => $request->name,
+                'phone_number' => $request->phone_number,
+                'email' => $request->email,
+                'username' => $request->username,
+            ]);
+            if($request->hasFile('avatar')) {
+                $request->file('avatar')->storeAs('public', 'avatars/'.$user->id);
+                $user->update([
+                    'avatar' => 'avatars/'.$user->id
+                ]);
+            }
+            return ResponseFormatter::success([
+                'user' => $user
+            ], 'Profile updated');
+        } catch (\Exception $e) {
+            return ResponseFormatter::error([
+                'message' => 'Something went wrong',
+                'error'   => $e->getMessage()
+            ], 'Update profile failed', 500);
+        }
+    }
+
+    public function logout(Request $request) {
+        try {
+            $token = $request->user()->currentAccessToken()->delete();
+            return ResponseFormatter::success($token, 'Logout success');
+        } catch (\Exception $e) {
+            return ResponseFormatter::error([
+                'message' => 'Something went wrong',
+                'error'   => $e->getMessage()
+            ], 'Logout failed', 500);
+        }
+    }
 }
